@@ -28,8 +28,9 @@ if [ ! -x "$CLANG" ]; then
 fi
 echo "[1/4] OHOS native 工具链：$SDK_PATH"
 
-# 2. 安装目标
-rustup target add aarch64-unknown-linux-ohos
+# 2. 安装目标（nightly 工具链，见 rust-toolchain.toml）
+rustup toolchain install nightly --profile minimal
+rustup target add --toolchain nightly aarch64-unknown-linux-ohos
 
 # 3. 编译
 export CC_aarch64_unknown_linux_ohos="$CLANG"

@@ -1,0 +1,4 @@
+# clash-rs 使用 #![feature(ip)] 等不稳定特性，必须使用 nightly 工具链。
+# rustup 会自动按此文件安装并切换到对应工具链。
+[toolchain]
+channel = "nightly"

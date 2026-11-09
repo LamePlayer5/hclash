@@ -41,8 +41,9 @@ if (-not (Test-Path $clang)) {
 }
 Write-Host "[1/4] OHOS native 工具链：$SdkPath"
 
-# 2. 安装目标
-rustup target add aarch64-unknown-linux-ohos
+# 2. 安装目标（nightly 工具链，见 rust-toolchain.toml）
+rustup toolchain install nightly --profile minimal
+rustup target add --toolchain nightly aarch64-unknown-linux-ohos
 
 # 3. 配置链接器（写入环境变量供 cargo 使用）
 $env:CC_aarch64_unknown_linux_ohos = $clang

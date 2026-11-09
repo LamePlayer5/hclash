@@ -11,9 +11,10 @@ name = "hclash_core_rust"
 crate-type = ["staticlib"]
 
 [dependencies]
-# clash-rs 内核（与 clash-ffi 相同的 feature 组合，VMess/VLESS/Trojan/Hysteria2
-# 等核心协议默认内置，shadowsocks/tuic/ssh 由 feature 开启）
-clash-lib = { git = "https://github.com/Watfaq/clash-rs.git", default-features = false, features = ["shadowsocks", "tuic", "ssh", "zero_copy"] }
+# clash-rs 内核（VMess/VLESS/Trojan/Hysteria2 等核心协议默认内置，
+# shadowsocks/tuic/ssh/wireguard 由 feature 开启；加密后端二选一，这里选 ring，
+# 它会一并传递 russh/ring、watfaq-dns/ring、hickory-net/https-ring）
+clash-lib = { git = "https://github.com/Watfaq/clash-rs.git", default-features = false, features = ["shadowsocks", "tuic", "ssh", "wireguard", "zero_copy", "ring"] }
 # 用户态网络栈（TUN fd → TCP/UDP 流），iOS 客户端 ChocLite 同款组件
 # （仓库目录名为 clash-netstack，包名为 watfaq-netstack）
 watfaq-netstack = { git = "https://github.com/Watfaq/clash-rs.git" }
@@ -25,13 +26,15 @@ libc = "0.2"
 log = "0.4"
 once_cell = "1"
 
-# clash-lib 的 ssh 出站依赖 russh；clash-lib 未替它选择加密后端，
-# 这里声明 ring 特性做 feature 统一（否则 russh 编译报错要求选 ring/aws-lc-rs）
-russh = { version = "0.61", default-features = false, features = ["ring"] }
-
 [profile.release]
 opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"
 strip = "symbols"
+
+# clash-rs 依赖 Watfaq 的 rustls/tokio-rustls 分叉（REALITY、ShadowTLS 等
+# 扩展 API）；依赖方的 [patch] 不会自动生效，必须在此复刻上游 workspace 的补丁
+[patch.crates-io]
+rustls = { git = "https://github.com/Watfaq/rustls.git", branch = "watfaq/0.23.45" }
+tokio-rustls = { git = "https://github.com/Watfaq/tokio-rustls.git", branch = "watfaq/0.26.4" }

@@ -45,9 +45,9 @@ powershell -ExecutionPolicy Bypass -File core\build-ohos.ps1
 
 ## 协议覆盖
 
-内核为 clash-rs，编译启用 `shadowsocks / tuic / ssh / zero_copy`（与官方
-clash-ffi 相同的 feature 组合），VMess / VLESS / Trojan / Hysteria2 / Shadowsocks /
-TUIC / SSH / Socks5 / Wireguard 等核心协议与传输层（TLS / WS / gRPC / H2 /
+内核为 clash-rs，编译启用 `shadowsocks / tuic / ssh / zero_copy` + `ring`
+加密后端（后者传递 russh/watfaq-dns/hickory 的 ring 后端），VMess / VLESS /
+Trojan / Hysteria2 / Shadowsocks / TUIC / SSH / Socks5 / Wireguard 等核心协议与传输层（TLS / WS / gRPC / H2 /
 REALITY 等）均由内核提供。TUN 全局接管通过本层的用户态中继实现（与
 clash-rs 官方 iOS 客户端同构方案）。
 

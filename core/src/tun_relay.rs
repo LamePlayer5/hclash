@@ -128,6 +128,9 @@ async fn relay_main(tun_fd: i32, mixed_port: u16, stop_rx: oneshot::Receiver<()>
                     };
                     if n < 0 {
                         Err(io::Error::last_os_error())
+                    } else if n == 0 {
+                        // EOF：fd 已关闭，结束读取任务
+                        Err(io::Error::new(io::ErrorKind::UnexpectedEof, "tun eof"))
                     } else {
                         buf.truncate(n as usize);
                         Ok(buf)

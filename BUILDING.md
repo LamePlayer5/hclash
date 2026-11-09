@@ -8,7 +8,7 @@
 |------|------|------|
 | DevEco Studio | 5.0+ | 构建 HAP、签名、安装真机 |
 | HarmonyOS NEXT SDK | API 12+（compileSdkVersion 12） | ArkTS/ArkUI 编译、NDK（CMake/clang） |
-| Rust（rustup） | stable（1.80+） | 编译 clash-rs 内核为 ohos 静态库 |
+| Rust（rustup） | **nightly**（clash-rs 需 `#![feature(ip)]`） | 编译 clash-rs 内核为 ohos 静态库 |
 | Python 3 | 3.9+（可选） | 仅开发脚本（图标生成） |
 | 真机 | HarmonyOS NEXT | VPN 能力验证（模拟器不支持 VPN） |
 
