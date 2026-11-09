@@ -14,6 +14,7 @@
 | `src/tun_relay.rs` | TUN 中继：系统 VPN fd → watfaq-netstack 用户态栈 → SOCKS5 出站 |
 | `src/socks5.rs` | 极简 SOCKS5 客户端（RFC 1928：CONNECT / UDP ASSOCIATE） |
 | `build-ohos.ps1` / `build-ohos.sh` | 交叉编译脚本（生成 `libs/libhclash_core_rust.a`） |
+| `vendor/rustls-fork/` | 内嵌的 Watfaq/rustls 分叉（REALITY/ShadowTLS API；详见其 README） |
 
 ## 构建
 

@@ -33,8 +33,10 @@ codegen-units = 1
 panic = "abort"
 strip = "symbols"
 
-# clash-rs 依赖 Watfaq 的 rustls/tokio-rustls 分叉（REALITY、ShadowTLS 等
-# 扩展 API）；依赖方的 [patch] 不会自动生效，必须在此复刻上游 workspace 的补丁
+# clash-rs 依赖 Watfaq 的 rustls 分叉（REALITY、ShadowTLS 等扩展 API）；
+# 依赖方的 [patch] 不会传递，必须在此复刻。rustls 内嵌于 vendor/rustls-fork
+# （watfaq/0.23.45 裁剪版，版本号提升至 0.23.46 以统一解析图中的全部要求，
+# 避免 registry 版与分叉版并存导致的 API 缺失）；tokio-rustls 直接指向分叉。
 [patch.crates-io]
-rustls = { git = "https://github.com/Watfaq/rustls.git", branch = "watfaq/0.23.45" }
+rustls = { path = "vendor/rustls-fork/rustls" }
 tokio-rustls = { git = "https://github.com/Watfaq/tokio-rustls.git", branch = "watfaq/0.26.4" }
