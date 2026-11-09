@@ -1,13 +1,19 @@
 import { vpnExtension } from '@kit.NetworkKit';
 import { RuntimeConfig } from '../services/VpnService';
 
+/** 自身包名（必须从 VPN 捕获中排除，否则内核出站流量会回流成环） */
+const SELF_BUNDLE: string = 'com.hclash.app';
+
 /**
  * 将 runtime.json 转换为系统的 VpnConfig。
  *
- * 说明：
- * - 隧道地址使用 10.0.0.2/24（仅作为 TUN 接口本端地址，与真实内网网段冲突概率低）
- * - routes 0.0.0.0/0（+ ::/0）全量接管，分应用代理通过 trusted/blocked 列表实现
- * - bypassPrivate 预留：若系统支持路由排除，可在此追加私网 bypass 规则
+ * 说明（依据 @ohos.net.vpnExtension 官方文档核验）：
+ * - MTU 系统限制 [576, 1500]
+ * - 隧道地址使用 10.0.0.2/24（仅作为 TUN 接口本端地址）
+ * - routes 0.0.0.0/0（+ ::/0）全量接管
+ * - **自环防护**：trustedApplications 与 blockedApplications 不能同时配置；
+ *   非白名单模式时必须把自身包名加入 blockedApplications，确保 clash 内核
+ *   的出站流量直接走物理网络（等价于 Android VpnService.protect()）
  */
 export function buildVpnConfig(runtime: RuntimeConfig): vpnExtension.VpnConfig {
   const addresses: vpnExtension.LinkAddress[] = [
@@ -48,22 +54,38 @@ export function buildVpnConfig(runtime: RuntimeConfig): vpnExtension.VpnConfig {
     });
   }
 
+  // MTU 钳制到系统允许范围 [576, 1500]
+  let mtu: number = runtime.mtu;
+  if (isNaN(mtu) || mtu < 576) {
+    mtu = 576;
+  } else if (mtu > 1500) {
+    mtu = 1500;
+  }
+
   const config: vpnExtension.VpnConfig = {
     addresses: addresses,
     routes: routes,
     dnsAddresses: runtime.dnsServers,
-    mtu: runtime.mtu,
+    mtu: mtu,
     isIPv4Accepted: true,
     isIPv6Accepted: runtime.ipv6,
     isInternal: false,
     isBlocking: false
   };
 
-  // 分应用代理：白名单 → trustedApplications；黑名单 → blockedApplications
+  // 分应用代理 + 自环防护（两类列表互斥）
   if (runtime.perAppMode === 'allow' && runtime.perAppPackages.length > 0) {
+    // 白名单：仅选中应用走 VPN；自身不在列表 → 出站不被捕获，安全
     config.trustedApplications = runtime.perAppPackages;
-  } else if (runtime.perAppMode === 'block' && runtime.perAppPackages.length > 0) {
-    config.blockedApplications = runtime.perAppPackages;
+  } else {
+    // 黑名单（或未启用分应用）：始终排除自身包名
+    const blocked: string[] = runtime.perAppMode === 'block'
+      ? runtime.perAppPackages.slice() as string[]
+      : [];
+    if (blocked.indexOf(SELF_BUNDLE) < 0) {
+      blocked.push(SELF_BUNDLE);
+    }
+    config.blockedApplications = blocked;
   }
 
   return config;

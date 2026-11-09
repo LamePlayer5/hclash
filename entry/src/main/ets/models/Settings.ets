@@ -29,7 +29,7 @@ export interface AppSettings {
   apiSecret: string;
   /** 代理模式 */
   mode: string;
-  /** TUN MTU */
+  /** TUN MTU（系统限制 576–1500） */
   tunMtu: number;
   /** 自定义 DNS（VPN 隧道的 DNS 列表） */
   dnsServers: string[];
@@ -59,7 +59,7 @@ export function defaultSettings(): AppSettings {
     apiPort: 9090,
     apiSecret: '',
     mode: 'rule',
-    tunMtu: 9000,
+    tunMtu: 1500,
     dnsServers: ['223.5.5.5', '119.29.29.29'],
     ipv6: false,
     allowLan: false,

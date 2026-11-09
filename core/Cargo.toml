@@ -25,6 +25,10 @@ libc = "0.2"
 log = "0.4"
 once_cell = "1"
 
+# clash-lib 的 ssh 出站依赖 russh；clash-lib 未替它选择加密后端，
+# 这里声明 ring 特性做 feature 统一（否则 russh 编译报错要求选 ring/aws-lc-rs）
+russh = { version = "0.61", default-features = false, features = ["ring"] }
+
 [profile.release]
 opt-level = "z"
 lto = true

@@ -226,7 +226,7 @@ export struct SettingsView {
                 .textAlign(TextAlign.End)
                 .onChange((v: string) => {
                   const n: number = Number(v);
-                  if (!isNaN(n) && n >= 576 && n <= 65535) {
+                  if (!isNaN(n) && n >= 576 && n <= 1500) {
                     this.save({ tunMtu: n }, '');
                   }
                 });
