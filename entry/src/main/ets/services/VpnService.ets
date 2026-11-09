@@ -163,18 +163,6 @@ export class VpnService {
       Log.d(TAG, 'core not reachable yet');
     }
   }
-
-  /**
-   * 构造 VpnConfig（VpnExtAbility 使用同款逻辑，见 vpnextension/VpnConfigBuilder.ets）。
-   */
-  static buildRouteList(ipv6: boolean, bypassPrivate: boolean): RouteSpec[] {
-    const routes: RouteSpec[] = [];
-    routes.push({ address: '0.0.0.0', prefix: 0, family: 1 });
-    if (ipv6) {
-      routes.push({ address: '::', prefix: 0, family: 2 });
-    }
-    return routes;
-  }
 }
 
 /** runtime.json 的序列化结构（UI 写，VPN 扩展读） */
@@ -191,10 +179,4 @@ export interface RuntimeConfig {
   perAppMode: PerAppMode;
   perAppPackages: string[];
   mode: string;
-}
-
-export interface RouteSpec {
-  address: string;
-  prefix: number;
-  family: number;
 }
