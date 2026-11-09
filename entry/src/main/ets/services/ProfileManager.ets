@@ -301,7 +301,12 @@ export class ProfileManager {
 
   private inferName(url: string): string {
     try {
-      const u: string = url.replace(/^https?:\/\//, '');
+      let u: string = url;
+      if (u.startsWith('https://')) {
+        u = u.substring(8);
+      } else if (u.startsWith('http://')) {
+        u = u.substring(7);
+      }
       const host: string = u.split('/')[0];
       return host.length > 0 ? host : '订阅配置';
     } catch (e) {
