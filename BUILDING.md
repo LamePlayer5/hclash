@@ -83,3 +83,25 @@ A: `core/` 目录下 `cargo test`（配置注入与 SOCKS5 编解码有单元测
 | `libs/libhclash_core_rust.a` | Rust 内核静态库（构建产物，不入库） |
 | `entry/build/` | hvigor/DevEco 构建产物（不入库） |
 | `core/target/` | cargo 构建产物（不入库） |
+
+## 6. 无 DevEco 环境的验证方法（CI 与贡献者）
+
+不装 DevEco Studio 也能验证大部分改动：
+
+```powershell
+# 1) 仓库静态检查（ArkTS 括号配对 / 导入路径 / JSON 语法）
+python scripts\balance_check.py
+python scripts\selfcheck.py
+
+# 2) Rust 内核真实编译验证（无需 OHOS SDK，验证与 clash-rs API 的匹配度）
+cd core
+cargo check            # Linux/macOS：应全量通过
+cargo check            # Windows：tun_relay 的 Unix fd 代码属预期差异，其余必须通过
+cargo test --lib       # 配置注入 / SOCKS5 编解码单元测试
+```
+
+说明：
+- `core/vendor/rustls-fork/` 是 Watfaq/rustls 分叉的裁剪内嵌（REALITY /
+  ShadowTLS API 依赖），版本号提升至 0.23.46 以统一依赖解析，详见其 README
+- clash-rs 上游如变更 `start_scaffold`/`Options` 等 API，只需同步 `core/src/engine.rs`
+  （对照官方 `clash-ffi/src/lib.rs`）

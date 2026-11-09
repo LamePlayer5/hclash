@@ -2,7 +2,7 @@
 //! - `patch`：注入/覆盖 external-controller、log-level 等运行参数
 //! - `mixed_port`：读取配置中的 mixed-port
 
-use serde_yaml::{Mapping, Value};
+use serde_yaml::Value;
 
 /// 注入运行参数：external-controller（127.0.0.1:apiPort）与 log-level。
 /// 其余配置原样保留。返回新的 YAML 文本。

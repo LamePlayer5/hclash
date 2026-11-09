@@ -126,7 +126,8 @@ pub async fn connect(proxy: SocketAddr, target: SocketAddr) -> io::Result<TcpStr
 
 /// SOCKS5 UDP ASSOCIATE 会话。
 pub struct UdpAssociate {
-    /// 控制连接（保持打开以维持关联）
+    /// 控制连接（保持打开以维持关联；显式持有，不直接读取）
+    #[allow(dead_code)]
     pub ctrl: TcpStream,
     /// 本地 UDP socket
     pub sock: UdpSocket,

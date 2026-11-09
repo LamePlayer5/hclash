@@ -8,50 +8,178 @@
 //!   TUN fd ← NetStack ←──────────────────────── 回程报文
 //!
 //! 该方案与 clash-rs 官方 iOS 客户端（ChocLite）同构：watfaq-netstack 即其用户态栈组件。
+//!
+//! 平台说明：TUN fd 泵使用 Unix fd API（`#[cfg(unix)]`）。HarmonyOS NEXT
+//! （aarch64-unknown-linux-ohos）属于 Unix 家族，编译真实实现；
+//! Windows 主机仅编译桩（便于 `cargo check` 全量校验其余代码）。
 
-use watfaq_netstack::{NetStack, Packet, UdpPacket};
-use futures::{SinkExt, StreamExt};
 use std::collections::HashMap;
 use std::io;
 use std::net::SocketAddr;
-use std::os::unix::io::RawFd;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::io::unix::AsyncFd;
+use futures::StreamExt;
 use tokio::sync::{mpsc, oneshot};
+use watfaq_netstack::{NetStack, StackSplitSink, StackSplitStream, UdpPacket};
 
 const MTU: usize = 65535;
 const MAX_UDP_FLOWS: usize = 8192;
 
-/// TUN fd 封装：拥有 fd 并在 drop 时关闭。
-struct TunFd {
-    raw: RawFd,
-}
+// ==================== TUN fd 泵（Unix） ====================
 
-impl std::os::unix::io::AsRawFd for TunFd {
-    fn as_raw_fd(&self) -> RawFd {
-        self.raw
+#[cfg(unix)]
+mod tun_io {
+    use super::*;
+    use std::os::unix::io::RawFd;
+    use futures::{SinkExt, StreamExt};
+    use tokio::io::unix::AsyncFd;
+    use watfaq_netstack::Packet;
+
+    /// TUN fd 封装：拥有 fd 并在 drop 时关闭。
+    struct TunFd {
+        raw: RawFd,
     }
-}
 
-impl Drop for TunFd {
-    fn drop(&mut self) {
-        unsafe {
-            libc::close(self.raw);
+    impl std::os::unix::io::AsRawFd for TunFd {
+        fn as_raw_fd(&self) -> RawFd {
+            self.raw
+        }
+    }
+
+    impl Drop for TunFd {
+        fn drop(&mut self) {
+            unsafe {
+                libc::close(self.raw);
+            }
+        }
+    }
+
+    fn set_nonblocking(fd: RawFd) -> io::Result<()> {
+        let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
+        if flags < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        if unsafe { libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK) } < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(())
+    }
+
+    /// 启动双向泵：TUN fd ↔ 协议栈。
+    pub fn spawn(tun_fd: i32, mut sink: StackSplitSink, mut stream: StackSplitStream) {
+        if let Err(e) = set_nonblocking(tun_fd) {
+            log::error!("[tun-relay] set nonblocking failed: {e}");
+            return;
+        }
+        let tun = Arc::new(AsyncFd::new(TunFd { raw: tun_fd }).expect("AsyncFd"));
+
+        // TUN fd → 协议栈
+        {
+            let tun = Arc::clone(&tun);
+            tokio::spawn(async move {
+                loop {
+                    let mut guard = match tun.readable().await {
+                        Ok(g) => g,
+                        Err(_) => return,
+                    };
+                    let pkt = match guard.try_io(|inner| {
+                        let mut buf = vec![0u8; MTU];
+                        let n = unsafe {
+                            libc::read(
+                                inner.get_ref().raw,
+                                buf.as_mut_ptr() as *mut libc::c_void,
+                                buf.len(),
+                            )
+                        };
+                        if n < 0 {
+                            Err(io::Error::last_os_error())
+                        } else if n == 0 {
+                            // EOF：fd 已关闭，结束读取任务
+                            Err(io::Error::new(io::ErrorKind::UnexpectedEof, "tun eof"))
+                        } else {
+                            buf.truncate(n as usize);
+                            Ok(buf)
+                        }
+                    }) {
+                        Ok(Ok(p)) => p,
+                        Ok(Err(e)) => {
+                            log::warn!("[tun-relay] tun read error: {e}");
+                            return;
+                        }
+                        Err(_) => continue, // WouldBlock：重新等待可读
+                    };
+                    if pkt.is_empty() {
+                        continue;
+                    }
+                    if sink.send(Packet::new(pkt)).await.is_err() {
+                        return;
+                    }
+                }
+            });
+        }
+
+        // 协议栈 → TUN fd
+        {
+            let tun = Arc::clone(&tun);
+            tokio::spawn(async move {
+                while let Some(item) = stream.next().await {
+                    let pkt = match item {
+                        Ok(p) => p,
+                        Err(e) => {
+                            log::warn!("[tun-relay] stack stream error: {e}");
+                            continue;
+                        }
+                    };
+                    let data = pkt.into_bytes();
+                    let mut off = 0usize;
+                    while off < data.len() {
+                        let mut guard = match tun.writable().await {
+                            Ok(g) => g,
+                            Err(_) => return,
+                        };
+                        let slice = &data[off..];
+                        let r = guard.try_io(|inner| {
+                            let n = unsafe {
+                                libc::write(
+                                    inner.get_ref().raw,
+                                    slice.as_ptr() as *const libc::c_void,
+                                    slice.len(),
+                                )
+                            };
+                            if n < 0 {
+                                Err(io::Error::last_os_error())
+                            } else {
+                                Ok(n as usize)
+                            }
+                        });
+                        match r {
+                            Ok(Ok(n)) => off += n,
+                            Ok(Err(e)) => {
+                                log::warn!("[tun-relay] tun write error: {e}");
+                                return;
+                            }
+                            Err(_) => continue, // WouldBlock：重新等待可写
+                        }
+                    }
+                }
+            });
         }
     }
 }
 
-fn set_nonblocking(fd: RawFd) -> io::Result<()> {
-    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
-    if flags < 0 {
-        return Err(io::Error::last_os_error());
+/// 非 Unix 平台桩：Windows 主机仅用于 `cargo check` 全量校验，不提供 TUN 泵。
+#[cfg(not(unix))]
+mod tun_io {
+    use super::*;
+
+    pub fn spawn(tun_fd: i32, sink: StackSplitSink, stream: StackSplitStream) {
+        log::warn!("[tun-relay] TUN pump unsupported on this platform (fd={tun_fd})");
+        drop(sink);
+        drop(stream);
     }
-    if unsafe { libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK) } < 0 {
-        return Err(io::Error::last_os_error());
-    }
-    Ok(())
 }
+
+// ==================== 中继句柄与主循环 ====================
 
 /// 中继句柄：`stop()` 等待中继线程退出并释放 fd。
 pub struct RelayHandle {
@@ -99,108 +227,14 @@ impl RelayHandle {
 
 /// 中继主循环。
 async fn relay_main(tun_fd: i32, mixed_port: u16, stop_rx: oneshot::Receiver<()>) {
-    if let Err(e) = set_nonblocking(tun_fd) {
-        log::error!("[tun-relay] set nonblocking failed: {e}");
-        return;
-    }
     let proxy: SocketAddr = SocketAddr::from(([127, 0, 0, 1], mixed_port));
-    let tun = Arc::new(AsyncFd::new(TunFd { raw: tun_fd }).expect("AsyncFd"));
     let (stack, listener, net_udp) = NetStack::new();
-    let (mut sink, mut stream) = stack.split();
+    let (sink, stream) = stack.split();
 
-    // 1) TUN fd → 协议栈
-    {
-        let tun = Arc::clone(&tun);
-        tokio::spawn(async move {
-            loop {
-                let mut guard = match tun.readable().await {
-                    Ok(g) => g,
-                    Err(_) => return,
-                };
-                let pkt = match guard.try_io(|inner| {
-                    let mut buf = vec![0u8; MTU];
-                    let n = unsafe {
-                        libc::read(
-                            inner.get_ref().raw,
-                            buf.as_mut_ptr() as *mut libc::c_void,
-                            buf.len(),
-                        )
-                    };
-                    if n < 0 {
-                        Err(io::Error::last_os_error())
-                    } else if n == 0 {
-                        // EOF：fd 已关闭，结束读取任务
-                        Err(io::Error::new(io::ErrorKind::UnexpectedEof, "tun eof"))
-                    } else {
-                        buf.truncate(n as usize);
-                        Ok(buf)
-                    }
-                }) {
-                    Ok(Ok(p)) => p,
-                    Ok(Err(e)) => {
-                        log::warn!("[tun-relay] tun read error: {e}");
-                        return;
-                    }
-                    Err(_) => continue, // WouldBlock：重新等待可读
-                };
-                if pkt.is_empty() {
-                    continue;
-                }
-                if sink.send(Packet::new(pkt)).await.is_err() {
-                    return;
-                }
-            }
-        });
-    }
+    // 1) TUN fd ↔ 协议栈（Unix fd 泵）
+    tun_io::spawn(tun_fd, sink, stream);
 
-    // 2) 协议栈 → TUN fd
-    {
-        let tun = Arc::clone(&tun);
-        tokio::spawn(async move {
-            while let Some(item) = stream.next().await {
-                let pkt = match item {
-                    Ok(p) => p,
-                    Err(e) => {
-                        log::warn!("[tun-relay] stack stream error: {e}");
-                        continue;
-                    }
-                };
-                let data = pkt.into_bytes();
-                let mut off = 0usize;
-                while off < data.len() {
-                    let mut guard = match tun.writable().await {
-                        Ok(g) => g,
-                        Err(_) => return,
-                    };
-                    let slice = &data[off..];
-                    let r = guard.try_io(|inner| {
-                        let n = unsafe {
-                            libc::write(
-                                inner.get_ref().raw,
-                                slice.as_ptr() as *const libc::c_void,
-                                slice.len(),
-                            )
-                        };
-                        if n < 0 {
-                            Err(io::Error::last_os_error())
-                        } else {
-                            Ok(n as usize)
-                        }
-                    });
-                    match r {
-                        Ok(Ok(n)) => off += n,
-                        Ok(Err(e)) => {
-                            log::warn!("[tun-relay] tun write error: {e}");
-                            return;
-                        }
-                        Err(_) => continue, // WouldBlock：重新等待可写
-                    }
-                }
-            }
-        });
-    }
-
-    // 3) TCP：接受用户态栈中的入站 TCP 流，经 SOCKS5 CONNECT 注入 mixed 端口
+    // 2) TCP：接受用户态栈中的入站 TCP 流，经 SOCKS5 CONNECT 注入 mixed 端口
     {
         let mut listener = listener;
         tokio::spawn(async move {
@@ -222,7 +256,7 @@ async fn relay_main(tun_fd: i32, mixed_port: u16, stop_rx: oneshot::Receiver<()>
         });
     }
 
-    // 4) UDP：经 SOCKS5 UDP ASSOCIATE 转发
+    // 3) UDP：经 SOCKS5 UDP ASSOCIATE 转发
     {
         let (mut udp_read, mut udp_write) = net_udp.split();
         let assoc = match crate::socks5::udp_associate(proxy).await {
