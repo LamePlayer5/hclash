@@ -1,5 +1,5 @@
 //! TUN 中继（tun2socks 风格）：
-//! 系统 VPN 隧道 fd（HarmonyOS vpnExtension 提供）→ clash-netstack 用户态协议栈
+//! 系统 VPN 隧道 fd（HarmonyOS vpnExtension 提供）→ watfaq-netstack 用户态协议栈
 //! → SOCKS5 出站 → 本地 mixed 端口 → clash-rs 规则/策略引擎。
 //!
 //! 数据路径：
@@ -7,9 +7,9 @@
 //!                                              └─ UDP: UdpSocket → SOCKS5 UDP ASSOCIATE
 //!   TUN fd ← NetStack ←──────────────────────── 回程报文
 //!
-//! 该方案与 clash-rs 官方 iOS 客户端（ChocLite）同构：clash-netstack 即其用户态栈组件。
+//! 该方案与 clash-rs 官方 iOS 客户端（ChocLite）同构：watfaq-netstack 即其用户态栈组件。
 
-use clash_netstack::{NetStack, Packet, UdpPacket};
+use watfaq_netstack::{NetStack, Packet, UdpPacket};
 use futures::{SinkExt, StreamExt};
 use std::collections::HashMap;
 use std::io;

@@ -15,7 +15,8 @@ crate-type = ["staticlib"]
 # 等核心协议默认内置，shadowsocks/tuic/ssh 由 feature 开启）
 clash-lib = { git = "https://github.com/Watfaq/clash-rs.git", default-features = false, features = ["shadowsocks", "tuic", "ssh", "zero_copy"] }
 # 用户态网络栈（TUN fd → TCP/UDP 流），iOS 客户端 ChocLite 同款组件
-clash-netstack = { git = "https://github.com/Watfaq/clash-rs.git" }
+# （仓库目录名为 clash-netstack，包名为 watfaq-netstack）
+watfaq-netstack = { git = "https://github.com/Watfaq/clash-rs.git" }
 
 tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros"] }
 futures = "0.3"

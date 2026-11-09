@@ -35,7 +35,7 @@
 
 ### 系统集成（HarmonyOS NEXT）
 - **VPN 全局接管**：`VpnExtAbility`（vpn 类型扩展）建立系统隧道，TUN fd 交给内核用户态中继
-  （clash-netstack，与 clash-rs 官方 iOS 客户端同构方案），全设备流量进入规则引擎
+  （watfaq-netstack，与 clash-rs 官方 iOS 客户端同构方案），全设备流量进入规则引擎
 - **分应用代理**：基于系统 VPN 的 trustedApplications / blockedApplications
 - 后台保活、自动连接（可选）、数据备份扩展
 
@@ -56,7 +56,7 @@
 │  │  ├ ApiClient ─────────┼── :9090 ──────┼──►      rust.a (Rust)     │     │
 │  │  ├ VpnService         │               │        ├ clash-rs 引擎    │     │
 │  │  └ TrafficSampler     │               │        └ tun_relay        │     │
-│  └───────────────────────┘               │          (clash-netstack) │     │
+│  └───────────────────────┘               │        (watfaq-netstack)  │     │
 │                                          └──────────────────────────┘     │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -65,7 +65,7 @@
   /connections /configs /traffic(ws) /logs(ws)`），UI 与内核解耦
 - **内核**：clash-rs（Rust），交叉编译为 `aarch64-unknown-linux-ohos` 静态库，
   经 NAPI 桥接加载；配置注入 `external-controller` 等运行参数
-- **TUN 中继**：clash-netstack（smoltcp 用户态协议栈）+ SOCKS5 出站至本地 mixed 端口
+- **TUN 中继**：watfaq-netstack（smoltcp 用户态协议栈）+ SOCKS5 出站至本地 mixed 端口
 
 详见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 

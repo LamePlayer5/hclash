@@ -18,7 +18,7 @@ and [Clash Verge](https://github.com/clash-verge-rev/clash-verge-rev).
   per-node latency tests; subscription manager (remote/local YAML, traffic & expiry
   info, auto-update); live connections; logs; rule browser; per-app proxy; settings.
 - **System integration**: `VpnExtAbility` (vpn-type extension) owns the system tunnel;
-  the TUN fd is fed to a userspace relay (clash-netstack + SOCKS5 to the local mixed
+  the TUN fd is fed to a userspace relay (watfaq-netstack + SOCKS5 to the local mixed
   port) — the same architecture as the official clash-rs iOS client.
 
 ## Build

@@ -7,7 +7,7 @@
 //! 设计：
 //! - `hclash_start`  加载 Clash YAML 配置（注入 external-controller 等运行参数），
 //!   启动 clash-rs 内核（`clash_lib::start_scaffold`，与官方 clash-ffi 相同入口）；
-//!   若 `tun_fd >= 0`，同时启动 TUN 中继（clash-netstack 用户态栈 + SOCKS5 出站），
+//!   若 `tun_fd >= 0`，同时启动 TUN 中继（watfaq-netstack 用户态栈 + SOCKS5 出站），
 //!   将系统 VPN 隧道流量经本地 mixed 端口送入内核策略引擎。
 //! - `hclash_stop`   停止内核与 TUN 中继。
 //! - `hclash_version` 返回内核版本字符串。

@@ -60,7 +60,7 @@ TUN fd ──read──► NetStack (smoltcp) ──TCP──► TcpListener.acc
 TUN fd ◄─write─ NetStack ◄─────────UDP───── UdpSocket.recv     ◄── SOCKS5 UDP ASSOC ◄┘
 ```
 
-- `clash-netstack`：clash-rs 官方用户态协议栈（smoltcp），负责 TCP 状态机、
+- `watfaq-netstack`（clash-rs 仓库 clash-netstack 目录）：官方用户态协议栈（smoltcp），负责 TCP 状态机、
   UDP 收发与 IP 包重组
 - `socks5.rs`：RFC 1928 极简客户端（无认证），TCP 用 CONNECT、UDP 用 UDP ASSOCIATE
 - 流量经 mixed 端口回到 clash-rs 引擎，完整经过规则/策略/出站协议处理
@@ -68,7 +68,7 @@ TUN fd ◄─write─ NetStack ◄─────────UDP───── 
 ### 3.3 为什么这样设计
 - **解耦**：UI 只认 mihomo 兼容 API，内核可独立升级/替换
 - **可维护**：clash-rs 为上游活跃项目，协议更新只需重新交叉编译
-- **同构验证**：clash-netstack 已被 clash-rs 官方 iOS 客户端（ChocLite）使用
+- **同构验证**：watfaq-netstack 已被 clash-rs 官方 iOS 客户端（ChocLite）使用
 
 ## 4. 服务层设计
 
