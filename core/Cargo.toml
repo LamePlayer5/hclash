@@ -1,0 +1,32 @@
+[package]
+name = "hclash-core"
+version = "1.0.0"
+edition = "2021"
+description = "HClash native core: clash-rs engine bridge for HarmonyOS NEXT"
+license = "GPL-3.0"
+publish = false
+
+[lib]
+name = "hclash_core_rust"
+crate-type = ["staticlib"]
+
+[dependencies]
+# clash-rs 内核（与 clash-ffi 相同的 feature 组合，VMess/VLESS/Trojan/Hysteria2
+# 等核心协议默认内置，shadowsocks/tuic/ssh 由 feature 开启）
+clash-lib = { git = "https://github.com/Watfaq/clash-rs.git", default-features = false, features = ["shadowsocks", "tuic", "ssh", "zero_copy"] }
+# 用户态网络栈（TUN fd → TCP/UDP 流），iOS 客户端 ChocLite 同款组件
+clash-netstack = { git = "https://github.com/Watfaq/clash-rs.git" }
+
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros"] }
+futures = "0.3"
+serde_yaml = "0.9"
+libc = "0.2"
+log = "0.4"
+once_cell = "1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"

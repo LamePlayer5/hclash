@@ -1,0 +1,11 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "HClash entry module",
+  "main": "",
+  "author": "HClash Authors",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "libhclash_core.so": "file:./src/main/cpp/types/libhclash_core"
+  }
+}

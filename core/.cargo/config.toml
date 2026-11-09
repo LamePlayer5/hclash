@@ -1,0 +1,8 @@
+# 交叉编译到 HarmonyOS NEXT (aarch64) 的链接器配置。
+# 使用前设置环境变量 OHOS_SDK_NATIVE 指向 OHOS SDK 的 native 目录，
+# 例如 C:\OpenHarmony\Sdk\12\native（Windows）或 ~/OpenHarmony/Sdk/12/native（macOS/Linux）。
+# 具体路径以 build-ohos.ps1 / build-ohos.sh 传入的参数为准。
+
+[target.aarch64-unknown-linux-ohos]
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]

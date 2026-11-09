@@ -1,0 +1,28 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "HClash"
+    },
+    {
+      "name": "module_desc",
+      "value": "HClash - 原生鸿蒙 Clash 客户端"
+    },
+    {
+      "name": "entryability_desc",
+      "value": "HClash 主入口"
+    },
+    {
+      "name": "vpn_ext_desc",
+      "value": "HClash VPN 隧道扩展"
+    },
+    {
+      "name": "perm_vpn_reason",
+      "value": "HClash 需要 VPN 权限以将设备流量接管至代理内核。"
+    },
+    {
+      "name": "perm_applist_reason",
+      "value": "用于列出已安装应用，实现分应用代理。"
+    }
+  ]
+}

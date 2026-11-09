@@ -1,0 +1,4 @@
+# ArkTS 混淆规则（release 默认关闭混淆，便于社区调试）
+# 开启混淆时请保留 NAPI 与资源引用相关名称
+-keep-property-name
+-keep-exported

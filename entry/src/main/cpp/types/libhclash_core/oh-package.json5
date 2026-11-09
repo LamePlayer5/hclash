@@ -1,0 +1,7 @@
+{
+  "name": "libhclash_core.so",
+  "types": "./index.d.ts",
+  "description": "HClash native core bridge (clash-rs engine + NAPI)",
+  "version": "1.0.0",
+  "license": "GPL-3.0"
+}

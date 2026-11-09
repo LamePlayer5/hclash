@@ -1,0 +1,31 @@
+# 构建产物
+libs/
+entry/build/
+oh_modules/
+build/
+core/target/
+**/node_modules/
+
+# hvigor / DevEco
+.cxx/
+hvigor/.hwc/
+local.properties
+.idea/
+*.iml
+
+# Rust
+core/Cargo.lock
+**/*.rs.bk
+
+# 签名与隐私（绝不入库）
+*.p12
+*.cer
+*.p7b
+*.pem
+*.key
+*.csr
+**/signing-configs.json
+
+# 系统
+.DS_Store
+Thumbs.db

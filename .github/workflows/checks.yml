@@ -1,0 +1,56 @@
+name: checks
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  rust-core-tests:
+    name: Rust core unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+      - name: cargo test (config + socks5)
+        run: cargo test --lib config:: socks5:: 2>/dev/null || cargo test --lib
+
+  repo-hygiene:
+    name: Repository hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check required files exist
+        run: |
+          for f in README.md LICENSE BUILDING.md ARCHITECTURE.md ROADMAP.md \
+                   build-profile.json5 oh-package.json5 hvigorfile.ts \
+                   AppScope/app.json5 entry/src/main/module.json5 \
+                   entry/src/main/cpp/CMakeLists.txt entry/src/main/cpp/napi_init.cpp \
+                   core/Cargo.toml core/src/lib.rs; do
+            test -e "hclash/$f" 2>/dev/null || test -e "$f" || { echo "missing: $f"; exit 1; }
+          done
+          echo "all required files present"
+      - name: Validate JSON5 syntax (strip comments)
+        run: |
+          python3 - <<'EOF'
+          import json, re, sys, glob
+          ok = True
+          for path in glob.glob('**/*.json5', recursive=True) + glob.glob('**/*.json', recursive=True):
+              if 'oh_modules' in path or 'node_modules' in path:
+                  continue
+              text = open(path, encoding='utf-8').read()
+              text = re.sub(r'//[^\n]*', '', text)
+              text = re.sub(r',\s*([}\]])', r'\1', text)
+              try:
+                  json.loads(text)
+              except Exception as e:
+                  print(f'INVALID: {path}: {e}'); ok = False
+          sys.exit(0 if ok else 1)
+          EOF

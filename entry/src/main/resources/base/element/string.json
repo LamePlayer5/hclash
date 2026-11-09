@@ -1,0 +1,28 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "HClash"
+    },
+    {
+      "name": "module_desc",
+      "value": "HClash - native HarmonyOS Clash client"
+    },
+    {
+      "name": "entryability_desc",
+      "value": "HClash main ability"
+    },
+    {
+      "name": "vpn_ext_desc",
+      "value": "HClash VPN tunnel extension"
+    },
+    {
+      "name": "perm_vpn_reason",
+      "value": "HClash needs VPN permission to route device traffic through the proxy core."
+    },
+    {
+      "name": "perm_applist_reason",
+      "value": "Used to list installed apps for per-app proxy selection."
+    }
+  ]
+}
